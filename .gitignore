@@ -1,3 +1,7 @@
 # Ejecutables
 chip8
 c8asm
+test
+
+# Objeto
+*.o

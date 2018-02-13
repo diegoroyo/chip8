@@ -1,7 +1,9 @@
 # Ejecutables
-chip8
 c8asm
-test
+chip8
 
 # Objeto
 *.o
+
+# Programas de prueba
+*.ch8

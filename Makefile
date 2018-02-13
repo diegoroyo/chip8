@@ -1,12 +1,21 @@
-FLAGS=-I . -std=c++11
+CFLAGS=-I . -std=c++11
+LFLAGS=-lSDL2
 
-all: test
+CHIP8=chip8
+MAIN=main
+OUT=chip8
 
-test: test.o chip8.o
-	g++ ${FLAGS} test.o chip8.o -o test
+all: main
+
+${MAIN}: ${MAIN}.o ${CHIP8}.o
+	g++ ${CHIP8}.o ${MAIN}.o ${CFLAGS} ${LFLAGS} -o ${OUT}
 	
-test.o: test.cpp
-	g++ ${FLAGS} -c test.cpp
+${MAIN}.o: ${MAIN}.cpp
+	g++ ${MAIN}.cpp ${CFLAGS} -c 
 	
-chip8.o: chip8.cpp chip8.hpp
-	g++ ${FLAGS} -c chip8.cpp
+${CHIP8}.o: ${CHIP8}.cpp ${CHIP8}.hpp
+	g++ ${CHIP8}.cpp ${CFLAGS} -c 
+	
+clean:
+	rm *.o
+	rm $(OUT)

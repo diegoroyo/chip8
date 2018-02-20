@@ -2,6 +2,9 @@
 #include "y.tab.h"
 #include "string.h"
 #define YYSTYPE union { char* str; int num; }
+
+/* Declaraciones de funciones, para evitar warnings */
+int yyerror(const char *s);
 %}
 
 %option caseless
@@ -51,9 +54,9 @@ E [^a-z0-9_@]
 "f"/{E}						{return(F);}
 "b"/{E}						{return(B);}
 
-[a-z_@][a-z0-9_@]++":"		{/*yytext[strlen(yytext) - 1] = '\0'; yylval = yytext; return(LABEL);*/}
-"\""+.*++"\""				{/*yytext[strlen(yytext) - 1] = '\0'; yylval = yytext[1]; return(STRING);*/}
-[a-z_@][a-z0-9_@]+			{/*yylval = yytext; return(VAR);*/}
+[a-z_@][a-z0-9_@]++":"		{yytext[strlen(yytext) - 1] = '\0'; yylval.str = yytext; return(LABELDEF);}
+"\""+.*++"\""				{yytext[strlen(yytext) - 1] = '\0'; yylval.str = &yytext[1]; return(STRING);}
+[a-z_@][a-z0-9_@]+			{yylval.str = yytext; return(VAR);}
 
 ","							{return(COMMA);}
 "["							{return(OB);}
@@ -66,6 +69,6 @@ E [^a-z0-9_@]
 <comm>[^\n]*				{/* Come todo hasta el \n */}
 <comm>\n					{BEGIN(INITIAL);}
 
-. 							{printf("Error: unexpected character %c\n", *yytext); /* TODO mejorar el error */}
+. 							{return yyerror("Error: unexpected character\n"); /* TODO mejorar el error indicando el caracter */}
 
 %%

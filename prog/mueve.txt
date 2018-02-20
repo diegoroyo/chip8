@@ -1,0 +1,21 @@
+; Programa de prueba que mueve el sprite del 0 por la pantalla
+; Controles: 2, 4, 6 y 8 para abajo, izquierda, derecha y arriba respectivmente
+ld v0, 0 ; px sprite
+ld v1, 0 ; py sprite
+ld v2, 1 ; cte 1
+ld f, v0 ; cargar en i @ de sprite 0
+drw v0, v1, 5 ; dibujo inicial
+key:
+ld v3, k
+drw v0, v1, 5
+sne v3, 2 ; abajo
+add v1, v2
+sne v3, 8 ; arriba
+sub v1, v2
+sne v3, 4 ; izquierda
+sub v0, v2
+sne v3, 6 ; derecha
+add v0, v2
+drw v0, v1, 5
+jp key
+

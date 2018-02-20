@@ -1,6 +1,6 @@
 %{
-	
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -9,11 +9,11 @@ int pc = 0x200;
 /* File pointer para el archivo de salida */
 FILE *fp;
 
-/* TODO Puse esto aqui para quitar warnings, ver que se puede hacer */
-int atoi();
+/* Declaraciones de funciones, para evitar warnings */
 int yylex();
+
 int yyerror(const char* s) {
-   printf("\n%s\n", s);
+   printf("\nError: %s\n", s); /* TODO numero de linea? */
    return 0;
 }
 
@@ -24,11 +24,9 @@ int op(int bits, int len) {
 	static int opcode = 0;
 	static int pos = 0;
 	if (pos + len > 4) {
-		printf("Error: Writing too much.\n"); /* TODO mejorar errores */
-		return 0;
+		return yyerror("Writing too much in a single instruction.\n");
 	} else if (bits >= 1 << len * 4) {
-		printf("Error: Numeric constant is too big.\n");
-		return 0;
+		return yyerror("Numeric constant is too big.\n");
 	}
 	pos += len;
 	opcode |= (bits & 0xFFFF >> (4 - len) * 4) << (4 - pos) * 4;
@@ -40,9 +38,50 @@ int op(int bits, int len) {
 	}
 }
 
+/* Guarda los valores de los labels */
+struct LabelList {
+	char* name;
+	int value;
+	struct LabelList* next;
+};
+
+struct LabelList* labels = NULL;
+
+/* Añade un nuevo label a la lista de los existentes */
+void addLabel(char* newName, int newValue) {
+	/* Comprobar que no se ha definido uno con ese nombre ya */
+	struct LabelList* l = labels;
+	while (l != NULL) {
+		if (strcmp(newName, l->name) == 0) {
+			yyerror("Label has already been defined."); /* TODO cambiar los errores? */
+			return;
+		}
+		l = l->next;
+	}
+	/* Añadir el nuevo label al principio de la lista */
+	struct LabelList* newLabel = malloc(sizeof(struct LabelList));
+	newLabel->name = newName;
+	newLabel->value = newValue;
+	newLabel->next = labels;
+	labels = newLabel;
+}
+
+/* Devuelve el valor de un label o -1 si no existe */
+int checkLabel(char* labelName) {
+	/* Comprobar que esta en la lista */
+	struct LabelList* l = labels;
+	while (l != NULL) {
+		if (strcmp(labelName, l->name) == 0) {
+			return l->value;
+		}
+		l = l->next;
+	}
+	return -1; /* No encontrado */
+}
+
 %}
 
-
+%define parse.error verbose
 
 %union {
 	char* str;
@@ -57,7 +96,7 @@ int op(int bits, int len) {
 %token<num> VX
 %token DT ST I
 %token K F B
-%token<str> LABEL STRING VAR
+%token<str> LABELDEF STRING VAR
 %token COMMA OB CB
 
 %type<num> value instruction
@@ -80,9 +119,8 @@ statement: instruction						{
 												/* Actualizar pc */
 												pc += 2;
 											}
+		 | LABELDEF							{ addLabel(strdup($1), pc); }
 		 | BYTE svalue_list
-		 | LABEL
-		 | VAR EQ value
 		 ;
 		 
 instruction: CLS							{ /* 00E0 */ $$ = 0x00E0; }
@@ -92,7 +130,7 @@ instruction: CLS							{ /* 00E0 */ $$ = 0x00E0; }
 		   | JP VX COMMA value 				{ /* Bnnn */ if ($2 == 0) {
 															 op(0xB, 1); $$ = op($4, 3);
 														 } else {
-															 return yyerror("Error: JP must use V0\n");
+															 return yyerror("JP must use V0.");
 														 }													}
 		   | CALL value						{ /* 2nnn */ op(0x2, 1); $$ = op($2, 3); }
 		   | SE VX COMMA value				{ /* 3xkk */ op(0x3, 1); op($2, 1); $$ = op($4, 2); }
@@ -135,15 +173,46 @@ svalue: STRING
 	  ;
 		 
 value: DECVAL	{ $$ = atoi($1); }
-	 | HEXVAL	{ $$ = atoi($1); /* TODO conversion */ }
-	 | BINVAL	{ $$ = atoi($1); /* TODO conversion */ }
-	 | VAR		{ $$ = 0; /* TODO crear/cargar variables */ }
+	 | HEXVAL	{ 	
+					$$ = 0;
+					int i = 0;
+					while ($1[i] != '\0') {
+						$$ *= 16;
+						if ($1[i] >= 'a' && $1[i] <= 'f') {
+							$$ += $1[i] - 'a' + 10;
+						} else if ($1[i] >= 'A' && $1[i] <= 'F') {
+							$$ += $1[i] - 'A' + 10;
+						} else if ($1[i] >= '0' && $1[i] <= '9') {
+							$$ += $1[i] - '0';
+						} else {
+							return yyerror("Invalid hexadecimal number.");
+						}
+						i++;
+					}
+				}
+	 | BINVAL	{ 	
+					$$ = 0;
+					int i = 0;
+					while ($1[i] != '\0') {
+						$$ *= 2;
+						if ($1[i] == '1') {
+							$$ += 1;
+						} else if ($1[i] != '0') {
+							return yyerror("Invalid binary number.");
+						}
+						i++;
+					}
+				}
+	 | VAR		{
+					$$ = checkLabel($1);
+					if ($$ == -1) return yyerror("Invalid label.");
+				}
 	 ;
 
 %%
 
 int main(int argc, char *argv[]) {
-	if (argc != 2) printf("Error: invalid number of arguments\n"); /* TODO error */
+	if (argc != 2) yyerror("Invalid number of arguments."); /* TODO error */
 	fp = fopen(argv[1], "w");
 	yyparse();
 	fclose(fp);

@@ -9,7 +9,3 @@ chip8
 lex.yy.c
 y.tab.c
 y.tab.h
-
-# Programas de prueba
-*.ch8
-test

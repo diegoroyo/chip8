@@ -1,9 +1,15 @@
 # Ejecutables
-c8asm
+ch8asm
 chip8
 
 # Objeto
 *.o
 
+# Otros
+lex.yy.c
+y.tab.c
+y.tab.h
+
 # Programas de prueba
 *.ch8
+test

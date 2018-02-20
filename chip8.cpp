@@ -6,7 +6,7 @@
 
 #include <chip8.hpp>
 
-#include <iostream>
+#include <iostream> // TODO quitar
 
 Chip8::Chip8() {
 	// RAM
@@ -45,7 +45,6 @@ bool Chip8::loadProgram(uint16_t* start, int len, int pos) {
 
 bool Chip8::loadProgram(char* name, int pos) {
 	std::ifstream file(name);
-	
 	if (file.is_open()) {
 		while (!file.eof() && pos < RAM_MAX) {
 			ram[pos] = file.get();
@@ -231,7 +230,7 @@ void Chip8::step() {
 			} else if (kk == 0x0A) {
 				// Fx0A - LD Vx, K - Wait for a key press, store the value of the key in Vx
 				if (keys) {
-					for (int j = 0; j < 0xF; j++) {
+					for (int j = 0; j <= 0xF; j++) {
 						 if (keys & (1 << j)) {
 							 V[x] = j;
 						 }
@@ -284,7 +283,7 @@ void Chip8::step() {
 
 void Chip8::renderTo(uint32_t* pixels) {
 	for (int j = 0; j < W * H; j++) {
-		if ((display[j / 8] << j) & 0x80) {
+		if ((display[j / 8] << (j % 8)) & 0x80) {
 			pixels[j] = 0xFFFFFF;
 		} else {
 			pixels[j] = 0x000000;

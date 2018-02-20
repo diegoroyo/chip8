@@ -79,10 +79,11 @@ int main(int argc, char *argv[]) {
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
 				end = true;
-			} else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+			} else if (event.type == SDL_KEYDOWN) {
 				if (event.key.keysym.sym == SDLK_ESCAPE) {
 					end = true;
 				} else {
+					chip8.waitingForKey = false;
 					chip8.keys ^= getMappedKey(event.key.keysym.sym);
 				}
 			}
